@@ -15,6 +15,12 @@ async function main(){
   if(!tx)throw Error("Missing deployment transaction");
   const receipt=await tx.wait(2);
   if(!receipt||receipt.status!==1)throw Error("Deployment not confirmed");
+  const code=await ethers.provider.getCode(await escrow.getAddress());
+  if(code==="0x")throw Error("Destination deployment has no contract code");
+  const storedAlpha=await escrow.solverAlpha();
+  const storedBravo=await escrow.solverBravo();
+  if(storedAlpha.toLowerCase()!==alpha.toLowerCase()||storedBravo.toLowerCase()!==bravo.toLowerCase())
+    throw Error("Destination constructor solver identities do not match configuration");
   const manifest={
     contract:"HarborDestinationEscrow",network:"portaldotV3",
     chainId:Number(n.chainId),address:await escrow.getAddress(),

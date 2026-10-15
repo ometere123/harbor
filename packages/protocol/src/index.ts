@@ -1,4 +1,4 @@
-import { defineChain, keccak256, toHex, parseUnits, formatUnits } from "viem";
+import { defineChain, isAddress, keccak256, toHex, parseUnits, formatUnits } from "viem";
 import type { Address, Hex } from "viem";
 
 export const BASE_ID = 84532;
@@ -140,9 +140,21 @@ export function destinationRawAmount(sourceRaw: bigint, rateBps: bigint, evmDeci
   return sourceRaw * rateBps * (10n ** BigInt(evmDecimals)) / (10_000n * 1_000_000n);
 }
 export function validQuote(q: Quote, nowSeconds: bigint): boolean {
-  return q.sourceChainId === BigInt(BASE_ID)
+  const zeroId = "0x" + "0".repeat(64);
+  return q.intentId !== zeroId
+    && q.secretHash !== zeroId
+    && isAddress(q.user)
+    && isAddress(q.solver)
+    && isAddress(q.destinationUser)
+    && isAddress(q.destinationSolver)
+    && q.solver.toLowerCase() === q.destinationSolver.toLowerCase()
+    && isAddress(q.sourceEscrow)
+    && isAddress(q.sourceToken)
+    && isAddress(q.destinationEscrow)
+    && q.sourceChainId === BigInt(BASE_ID)
     && q.destinationChainId === BigInt(PORTALDOT_ID)
     && q.sourceAmount >= 500_000n
+    && q.sourceAmount <= 100_000_000n
     && q.destinationAmount > 0n
     && q.expiresAt > nowSeconds
     && q.expiresAt <= nowSeconds + QUOTE_DURATION;

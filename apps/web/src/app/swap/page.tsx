@@ -141,7 +141,7 @@ async function faucet(){
         <p className="muted text-xs mt-2">Encrypts your secret locally. Never transmitted to a server. Losing both passphrase and backup means waiting for a refundable timeout.</p>
       </div>
       {!wallet.connected&&<p className="text-yellow-200 text-sm flex gap-2"><AlertTriangle size={16}/> Connect an injected wallet using the top-right button.</p>}
-      {!ready()&&<p className="text-yellow-200 text-sm flex gap-2"><AlertTriangle size={16}/> Contract addresses are not deployed/configured yet. Live swaps are disabled.</p>}
+      {!ready()&&<p className="text-yellow-200 text-sm flex gap-2"><AlertTriangle size={16}/> Live contract addresses and Portaldot EVM value-unit calibration are required before swaps are enabled.</p>}
       <button className="btn btn-primary w-full" disabled={!wallet.connected||busy||!ready()} onClick={()=>void getQuotes()}>
         Request competing quotes <ArrowRight size={16}/>
       </button>

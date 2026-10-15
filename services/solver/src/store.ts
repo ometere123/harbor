@@ -1,17 +1,3 @@
-export interface Env {
-  BASE_RPC_URL: string; PORTALDOT_EVM_RPC_URL: string;
-  BASE_CHAIN_ID: string; PORTALDOT_CHAIN_ID: string;
-  PORTALDOT_EVM_VALUE_DECIMALS_VERIFIED: string; DEST_EVM_VALUE_DECIMALS: string;
-  SOLVER_ALPHA_RATE_BPS: string; SOLVER_BRAVO_RATE_BPS: string;
-  SOURCE_CONFIRMATIONS: string; DEST_CONFIRMATIONS: string;
-  SOURCE_TOKEN_ADDRESS: string; SOURCE_ESCROW_ADDRESS: string; DESTINATION_ESCROW_ADDRESS: string;
-  TREASURY_ADDRESS: string;
-  SOLVER_ALPHA_PRIVATE_KEY: string; SOLVER_BRAVO_PRIVATE_KEY: string;
-  SUPABASE_URL: string; SUPABASE_SERVICE_ROLE_KEY: string;
-  SOURCE_START_BLOCK: string; DEST_START_BLOCK: string;
-  WORKER_ADMIN_TOKEN: string;
-  HARBOR_JOBS: Queue<Job>;
-}
 export type Job =
   | { type: "scan"; chain: "source" | "destination" }
   | { type: "fund"; intentId: string }
@@ -41,6 +27,12 @@ export function upsert<T>(env: Env, table: string, rows: unknown, onConflict: st
     method: "POST",
     headers: { Prefer: "resolution=merge-duplicates,return=representation" },
     body: JSON.stringify(rows),
+  });
+}
+export function rpc<T>(env: Env, functionName: string, args: Record<string, unknown>): Promise<T> {
+  return db<T>(env, "rpc/" + functionName, "", {
+    method: "POST",
+    body: JSON.stringify(args),
   });
 }
 export function iso(): string { return new Date().toISOString(); }

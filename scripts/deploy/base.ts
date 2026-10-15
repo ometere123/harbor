@@ -8,6 +8,8 @@ async function main(){
   const treasury=process.env.TREASURY_ADDRESS;
   if(!target||!ethers.isAddress(target)||!treasury||!ethers.isAddress(treasury))
     throw Error("Set DESTINATION_ESCROW_ADDRESS and TREASURY_ADDRESS");
+  const destinationCode=await ethers.provider.getCode(target);
+  if(destinationCode==="0x")throw Error("Destination escrow has no deployed code on Portaldot");
   const hUSD=await ethers.deployContract("HarborTestUSD");
   await hUSD.waitForDeployment();
   const source=await ethers.deployContract("HarborSourceEscrow",[await hUSD.getAddress(),target,treasury,420420777n]);
@@ -20,6 +22,13 @@ async function main(){
     if(!receipt||receipt.status!==1)throw Error("Deployment not confirmed");
     deployed.push({name,address:await instance.getAddress(),deploymentTx:tx.hash,blockNumber:receipt.blockNumber});
   }
+  const sourceCode=await ethers.provider.getCode(await source.getAddress());
+  const tokenCode=await ethers.provider.getCode(await hUSD.getAddress());
+  if(sourceCode==="0x"||tokenCode==="0x")throw Error("Base deployment has missing contract code");
+  if((await source.destinationEscrow()).toLowerCase()!==target.toLowerCase()
+    ||(await source.sourceToken()).toLowerCase()!==(await hUSD.getAddress()).toLowerCase()
+    ||(await source.treasury()).toLowerCase()!==treasury.toLowerCase())
+    throw Error("Base constructor bindings do not match configuration");
   const manifest={network:"baseSepolia",chainId:Number(n.chainId),treasury,destinationEscrow:target,deployed};
   mkdirSync("deployments",{recursive:true});
   writeFileSync("deployments/base-sepolia.json",JSON.stringify(manifest,null,2)+"\n");

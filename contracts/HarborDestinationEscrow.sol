@@ -9,7 +9,10 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 contract HarborDestinationEscrow is ReentrancyGuard {
     enum Status { NONE, LOCKED, CLAIMED, REFUNDED }
     uint256 public constant DESTINATION_DURATION = 4 hours;
-    uint256 public constant MIN_DURATION = 3 hours;
+    // A transaction can be mined a few seconds after the solver selected its
+    // deadline. Keep a small tolerance while preventing a solver from silently
+    // shortening the user-visible four-hour destination window.
+    uint256 public constant DEADLINE_TOLERANCE = 2 minutes;
 
     struct Swap {
         address solver;
@@ -41,7 +44,7 @@ contract HarborDestinationEscrow is ReentrancyGuard {
         require(recipient != address(0), "ZERO_RECIPIENT");
         require(msg.value > 0, "ZERO_VALUE");
         require(swaps[intentId].status == Status.NONE, "INTENT_USED");
-        require(deadline >= block.timestamp + MIN_DURATION, "TOO_SOON");
+        require(deadline + DEADLINE_TOLERANCE >= block.timestamp + DESTINATION_DURATION, "TOO_SOON");
         require(deadline <= block.timestamp + DESTINATION_DURATION, "TOO_FAR");
         swaps[intentId] = Swap(msg.sender, recipient, secretHash, msg.value, deadline, Status.LOCKED);
         emit DestinationLocked(intentId, msg.sender, recipient, secretHash, msg.value, deadline);

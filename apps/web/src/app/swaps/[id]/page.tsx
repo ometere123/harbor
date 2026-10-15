@@ -29,6 +29,18 @@ export default function SwapDetails(){
   const [error,setError]=useState("");
   const [message,setMessage]=useState("");
 
+  const restoreStoredFromRecovery=useCallback(async(backup:Recovery)=>{
+    if(!backup.offers?.length||!config.sourceEscrow)return false;
+    const storedDigest=await baseClient.readContract({address:config.sourceEscrow,abi:sourceAbi,functionName:"quoteDigests",args:[id as Hex]});
+    const match=backup.offers.find(offer=>{
+      const digest=hashTypedData({domain:quoteDomain(config.sourceEscrow!),types:typedQuote,primaryType:"Quote",message:quoteFromJson(offer.quote)});
+      return digest.toLowerCase()===storedDigest.toLowerCase();
+    });
+    if(!match)return false;
+    setStored({quote:match.quote,signature:match.signature,sourceTx:"0x" as Hex});
+    return true;
+  },[id]);
+
   const refresh=useCallback(async()=>{
     if(!/^0x[0-9a-fA-F]{64}$/.test(id)||!ready())return;
     try{
@@ -48,15 +60,9 @@ export default function SwapDetails(){
       if(r)setStored(JSON.parse(r) as Stored);
       const backup=loadRecovery(id);
       setRecovery(backup);
-      if(!r&&backup?.offers?.length&&config.sourceEscrow){
-        void (async()=>{
-          const storedDigest=await baseClient.readContract({address:config.sourceEscrow!,abi:sourceAbi,functionName:"quoteDigests",args:[id as Hex]});
-          const match=backup.offers!.find(offer=>hashTypedData({domain:quoteDomain(config.sourceEscrow!),types:typedQuote,primaryType:"Quote",message:quoteFromJson(offer.quote)})===storedDigest);
-          if(match)setStored({quote:match.quote,signature:match.signature,sourceTx:"0x" as Hex});
-        })().catch(()=>{});
-      }
+      if(!r&&backup)void restoreStoredFromRecovery(backup).catch(()=>{});
     }catch{setError("Saved swap data could not be read.");}
-  },[id]);
+  },[id,restoreStoredFromRecovery]);
   useEffect(()=>{
     void refresh();
     const timer=setInterval(()=>void refresh(),15000);
@@ -66,8 +72,12 @@ export default function SwapDetails(){
   function importRecovery(){
     try{
       const imported=JSON.parse(importJson) as Recovery;
-      if(imported.protocol!=="HARBOR-RECOVERY-1" || imported.intentId.toLowerCase()!==id.toLowerCase())throw Error("Recovery file does not match this swap");
-      saveRecovery(imported);setRecovery(imported);setError("");setMessage("Encrypted record imported. Refresh this page to restore the matching on-chain quote.");
+      if(imported.protocol!=="HARBOR-RECOVERY-1" || !/^0x[0-9a-fA-F]{64}$/.test(imported.intentId)
+        || imported.intentId.toLowerCase()!==id.toLowerCase())throw Error("Recovery file does not match this swap");
+      saveRecovery(imported);setRecovery(imported);setImportJson("");setError("");
+      void restoreStoredFromRecovery(imported).then(restored=>setMessage(
+        restored?"Encrypted record imported and matched to the on-chain quote.":"Encrypted record imported; no matching on-chain quote was found yet.",
+      )).catch(()=>setMessage("Encrypted record imported. The on-chain quote could not be read yet."));
     }catch(e){setError(String(e));}
   }
 
@@ -113,6 +123,18 @@ export default function SwapDetails(){
       const receipt=await baseClient.waitForTransactionReceipt({hash:tx as Hex});
       if(receipt.status!=="success")throw Error("Refund reverted");
       setMessage("Your hUSD was refunded to the original source account");await refresh();
+    }catch(e){setError(String(e));}finally{setBusy(false);}
+  }
+  async function refundDestination(){
+    if(!wallet.address||!snapshot)throw Error("Connect a wallet first");
+    if(snapshot.destination[5]!==1||BigInt(Math.floor(Date.now()/1000))<snapshot.destination[4])throw Error("Destination refund is not due");
+    setBusy(true);setError("");
+    try{
+      const tx=await wallet.send(PORTALDOT_ID,async(client,account)=>
+        client.writeContract({address:config.destinationEscrow!,abi:destinationAbi,functionName:"refund",args:[id as Hex],account,chain:portaldot}));
+      const receipt=await destClient.waitForTransactionReceipt({hash:tx as Hex});
+      if(receipt.status!=="success")throw Error("Destination refund reverted");
+      setMessage("Destination escrow refunded to the solver");await refresh();
     }catch(e){setError(String(e));}finally{setBusy(false);}
   }
   if(!/^0x[a-fA-F0-9]{64}$/.test(id))return <p className="py-20 text-red-300">Invalid swap identifier.</p>;
@@ -161,6 +183,10 @@ export default function SwapDetails(){
         <button className="btn btn-outline" disabled={busy||!wallet.connected} onClick={()=>void refundSource()}>
           Refund my source hUSD <Clock size={15}/>
         </button>}
+      {snapshot?.destination[5]===1&&BigInt(Math.floor(Date.now()/1000))>=snapshot.destination[4]&&
+        <button className="btn btn-outline" disabled={busy||!wallet.connected} onClick={()=>void refundDestination()}>
+          Refund destination escrow to solver <Clock size={15}/>
+        </button>}
       {snapshot?.destination[5]===0&&snapshot.source[6]===1&&<p className="muted text-sm flex gap-2 items-center"><Clock size={16}/> Waiting for the selected solver to fund Portaldot. If it fails, your source hUSD becomes refundable after the source deadline.</p>}
       {snapshot?.source[6]===2&&snapshot.destination[5]===2&&<p className="text-aqua flex gap-2 items-center"><CheckCircle2/> Both escrows settled successfully.</p>}
       {message&&<p className="text-aqua text-sm" role="status">{message}</p>}
@@ -172,7 +198,7 @@ export default function SwapDetails(){
       <div className="space-y-3 mt-5">{events.length?events.map((event,i)=><div key={i} className="stat">
         <b className="text-sm">{event.event_name}</b><p className="muted text-xs mt-1">{event.chain}</p>
         <p className="mono text-xs mt-2">{event.tx_hash}</p></div>):
-        <p className="muted text-sm">No indexed events yet. Indexing runs on Cloudflare's scheduled queue.</p>}</div>
+        <p className="muted text-sm">No indexed events yet. Indexing runs on Cloudflare&apos;s scheduled queue.</p>}</div>
     </div>
   </section>;
 }

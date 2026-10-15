@@ -15,10 +15,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm install --frozen-lockfile
       - run: pnpm compile
       - run: pnpm test
       - run: pnpm typecheck
+      - run: pnpm lint
       - run: pnpm build
       - run: pnpm --filter @harbor/solver exec wrangler deploy --dry-run --outdir .wrangler/dryrun
       - run: pnpm --filter @harbor/web exec playwright install --with-deps chromium

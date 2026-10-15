@@ -85,6 +85,28 @@ describe("HARBOR dual-chain escrow lifecycle", () => {
     await time.increase(360);
     await expect(s.source.connect(s.user).openSwap(s.quote,s.signature)).to.be.revertedWith("QUOTE_EXPIRED");
   });
+  it("enforces the five-minute quote window and binds the destination solver", async () => {
+    const s=await setup();
+    const longQuote={...s.quote,expiresAt:s.quote.expiresAt+301n};
+    const longSignature=await s.solver.signTypedData({
+      name:"HARBOR",version:"1",chainId:s.quote.sourceChainId,verifyingContract:await s.source.getAddress()
+    },types,longQuote);
+    await expect(s.source.connect(s.user).openSwap(longQuote,longSignature)).to.be.revertedWith("QUOTE_TOO_LONG");
+
+    const mismatched={...s.quote,destinationSolver:s.stranger.address};
+    const mismatchedSignature=await s.solver.signTypedData({
+      name:"HARBOR",version:"1",chainId:s.quote.sourceChainId,verifyingContract:await s.source.getAddress()
+    },types,mismatched);
+    await expect(s.source.connect(s.user).openSwap(mismatched,mismatchedSignature)).to.be.revertedWith("SOLVER_MISMATCH");
+  });
+  it("rejects an amount whose 20 bps fee rounds to zero before taking tokens", async () => {
+    const s=await setup();
+    const tiny={...s.quote,sourceAmount:1n};
+    const signature=await s.solver.signTypedData({
+      name:"HARBOR",version:"1",chainId:s.quote.sourceChainId,verifyingContract:await s.source.getAddress()
+    },types,tiny);
+    await expect(s.source.connect(s.user).openSwap(tiny,signature)).to.be.revertedWith("FEE_TOO_SMALL");
+  });
   it("does not allow malformed native funding or duplicate intent IDs", async () => {
     const s=await setup();
     await s.source.connect(s.user).openSwap(s.quote,s.signature);
@@ -92,6 +114,10 @@ describe("HARBOR dual-chain escrow lifecycle", () => {
     const now=BigInt(await time.latest());
     await expect(s.destination.connect(s.solver).fundSwap(s.intentId,s.hash,s.user.address,now+100n,{value:fortyTwoPOT}))
       .to.be.revertedWith("TOO_SOON");
+    await expect(s.destination.connect(s.solver).fundSwap(s.intentId,s.hash,s.user.address,now+4n*3600n-5n*60n,{value:fortyTwoPOT}))
+      .to.be.revertedWith("TOO_SOON");
+    await expect(s.destination.connect(s.solver).fundSwap(s.intentId,s.hash,s.user.address,now+5n*3600n,{value:fortyTwoPOT}))
+      .to.be.revertedWith("TOO_FAR");
     const deadline=now+4n*3600n;
     await expect(s.destination.connect(s.stranger).fundSwap(s.intentId,s.hash,s.user.address,deadline,{value:fortyTwoPOT})).to.be.revertedWith("NOT_SOLVER");
     await s.destination.connect(s.solver).fundSwap(s.intentId,s.hash,s.user.address,deadline,{value:fortyTwoPOT});
@@ -111,7 +137,7 @@ describe("HARBOR dual-chain escrow lifecycle", () => {
   it("refunds unclaimed native escrow and source tokens after independent deadlines", async () => {
     const s=await setup();
     await s.source.connect(s.user).openSwap(s.quote,s.signature);
-    const deadline=BigInt(await time.latest())+3n*3600n+100n;
+    const deadline=BigInt(await time.latest())+4n*3600n;
     await s.destination.connect(s.solver).fundSwap(s.intentId,s.hash,s.user.address,deadline,{value:fortyTwoPOT});
     await time.increaseTo(deadline);
     await s.destination.connect(s.stranger).refund(s.intentId);
@@ -126,13 +152,24 @@ describe("HARBOR dual-chain escrow lifecycle", () => {
   it("prevents claims after expiry and allows refund instead", async () => {
     const s=await setup();
     await s.source.connect(s.user).openSwap(s.quote,s.signature);
-    const deadline=BigInt(await time.latest())+3n*3600n+100n;
+    const deadline=BigInt(await time.latest())+4n*3600n;
     await s.destination.connect(s.solver).fundSwap(s.intentId,s.hash,s.user.address,deadline,{value:fortyTwoPOT});
     await time.increaseTo(deadline);
     await expect(s.destination.claim(s.intentId,s.secret)).to.be.revertedWith("EXPIRED");
     await s.destination.refund(s.intentId);
     await time.increase(24*3600);
     await expect(s.source.claim(s.intentId,s.secret)).to.be.revertedWith("EXPIRED");
+  });
+  it("rolls back a failed native payout without changing status or trapping a second claim", async () => {
+    const s=await setup();
+    const badRecipient=await s.destination.getAddress();
+    const intent=ethers.hexlify(ethers.randomBytes(32));
+    const deadline=BigInt(await time.latest())+4n*3600n;
+    await s.destination.connect(s.solver).fundSwap(intent,s.hash,badRecipient,deadline,{value:fortyTwoPOT});
+    const before=await ethers.provider.getBalance(badRecipient);
+    await expect(s.destination.connect(s.stranger).claim(intent,s.secret)).to.be.revertedWith("NATIVE_SEND_FAILED");
+    expect((await s.destination.swaps(intent)).status).to.equal(1);
+    expect(await ethers.provider.getBalance(badRecipient)).to.equal(before);
   });
   it("mints only one faucet claim per day per address", async () => {
     const s=await setup();

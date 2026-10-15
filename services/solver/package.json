@@ -2,14 +2,15 @@
   "name": "@harbor/solver",
   "private": true,
   "type": "module",
-  "scripts": { "typecheck": "tsc --noEmit", "dev": "wrangler dev", "deploy": "wrangler deploy" },
+  "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run", "dev": "wrangler dev", "deploy": "wrangler deploy" },
   "dependencies": {
     "@harbor/protocol": "workspace:*",
     "viem": "^2.28.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250321.0",
     "typescript": "^5.8.3",
+    "vite": "^6.4.3",
+    "vitest": "^3.2.7",
     "wrangler": "^4.10.0"
   }
 }

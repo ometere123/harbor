@@ -15,6 +15,7 @@ contract HarborSourceEscrow is EIP712, ReentrancyGuard {
 
     enum Status { NONE, LOCKED, CLAIMED, REFUNDED }
     uint256 public constant SOURCE_DURATION = 24 hours;
+    uint256 public constant QUOTE_DURATION = 5 minutes;
     uint256 public constant FEE_BPS = 20;
     uint256 public constant BPS = 10_000;
 
@@ -89,11 +90,13 @@ contract HarborSourceEscrow is EIP712, ReentrancyGuard {
         require(msg.sender == q.user, "NOT_USER");
         require(q.user != address(0) && q.solver != address(0), "ZERO_ACTOR");
         require(q.destinationUser != address(0) && q.destinationSolver != address(0), "ZERO_DEST_ACTOR");
+        require(q.destinationSolver == q.solver, "SOLVER_MISMATCH");
         require(q.secretHash != bytes32(0) && q.intentId != bytes32(0), "ZERO_ID");
         require(q.sourceAmount > 0 && q.destinationAmount > 0, "ZERO_AMOUNT");
-        require(q.sourceAmount * FEE_BPS / BPS > 0, "FEE_TOO_SMALL");
         require(q.sourceAmount <= type(uint256).max / FEE_BPS, "AMOUNT_OVERFLOW");
         require(block.timestamp < q.expiresAt, "QUOTE_EXPIRED");
+        require(q.expiresAt <= block.timestamp + QUOTE_DURATION, "QUOTE_TOO_LONG");
+        require(q.sourceAmount * FEE_BPS / BPS > 0, "FEE_TOO_SMALL");
         require(q.sourceChainId == block.chainid && q.destinationChainId == destinationChainId, "WRONG_CHAIN");
         require(q.sourceEscrow == address(this) && q.sourceToken == address(sourceToken), "WRONG_SOURCE");
         require(q.destinationEscrow == destinationEscrow, "WRONG_DESTINATION");

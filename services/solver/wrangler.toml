@@ -1,8 +1,19 @@
 name = "harbor-solvers"
 main = "src/index.ts"
-compatibility_date = "2026-09-01"
+compatibility_date = "2026-10-15"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = true
+
+[observability]
+enabled = true
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+
+[observability.traces]
+enabled = true
+head_sampling_rate = 0.1
 
 [triggers]
 crons = ["*/5 * * * *"]
@@ -31,7 +42,23 @@ queue = "harbor-jobs"
 max_batch_size = 5
 max_batch_timeout = 3
 max_retries = 5
+max_concurrency = 1
 dead_letter_queue = "harbor-dead-letter"
 
 # Create dead-letter queue once:
 # pnpm --filter @harbor/solver exec wrangler queues create harbor-dead-letter
+
+[secrets]
+required = [
+  "SOURCE_TOKEN_ADDRESS",
+  "SOURCE_ESCROW_ADDRESS",
+  "DESTINATION_ESCROW_ADDRESS",
+  "TREASURY_ADDRESS",
+  "SOLVER_ALPHA_PRIVATE_KEY",
+  "SOLVER_BRAVO_PRIVATE_KEY",
+  "SUPABASE_URL",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SOURCE_START_BLOCK",
+  "DEST_START_BLOCK",
+  "WORKER_ADMIN_TOKEN",
+]
