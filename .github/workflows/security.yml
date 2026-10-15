@@ -1,0 +1,22 @@
+name: Security checks
+on:
+  push:
+  pull_request:
+jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Confirm example-only credentials
+        shell: bash
+        run: |
+          if git grep -I -nE '(0x[0-9a-fA-F]{64})' -- ':!tests/contracts/*' ':!*.example'; then
+            echo 'Review any committed private key-sized literals.'; exit 1;
+          fi
+      - name: Assert no real env files committed
+        run: |
+          test -z "$(git ls-files | grep -E '(^|/)\.env$|(^|/)\.env\.local$|(^|/)\.dev\.vars$')"
