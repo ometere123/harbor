@@ -1,0 +1,37 @@
+name = "harbor-solvers"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+BASE_RPC_URL = "https://sepolia.base.org"
+PORTALDOT_EVM_RPC_URL = "https://testnetv3-eth-rpc.feso-apps.xyz"
+BASE_CHAIN_ID = "84532"
+PORTALDOT_CHAIN_ID = "420420777"
+# MUST BE SET AFTER TESTNET LIVE VALIDATION
+PORTALDOT_EVM_VALUE_DECIMALS_VERIFIED = "false"
+DEST_EVM_VALUE_DECIMALS = "18"
+SOLVER_ALPHA_RATE_BPS = "4200"
+SOLVER_BRAVO_RATE_BPS = "4100"
+SOURCE_CONFIRMATIONS = "5"
+DEST_CONFIRMATIONS = "5"
+
+# A Cloudflare Queue requires an account-level queue created once.
+# Create with: pnpm --filter @harbor/solver exec wrangler queues create harbor-jobs
+[[queues.producers]]
+queue = "harbor-jobs"
+binding = "HARBOR_JOBS"
+
+[[queues.consumers]]
+queue = "harbor-jobs"
+max_batch_size = 5
+max_batch_timeout = 3
+max_retries = 5
+dead_letter_queue = "harbor-dead-letter"
+
+# Create dead-letter queue once:
+# pnpm --filter @harbor/solver exec wrangler queues create harbor-dead-letter
