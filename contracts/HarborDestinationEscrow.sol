@@ -20,6 +20,13 @@ contract HarborDestinationEscrow is ReentrancyGuard {
         Status status;
     }
 
+    address public immutable solverAlpha;
+    address public immutable solverBravo;
+    constructor(address alpha, address bravo) {
+        require(alpha != address(0) && bravo != address(0) && alpha != bravo, "INVALID_SOLVERS");
+        solverAlpha = alpha;
+        solverBravo = bravo;
+    }
     mapping(bytes32 => Swap) public swaps;
 
     event DestinationLocked(bytes32 indexed intentId, address indexed solver, address indexed recipient, bytes32 secretHash, uint256 amount, uint64 deadline);
@@ -29,6 +36,7 @@ contract HarborDestinationEscrow is ReentrancyGuard {
     function fundSwap(bytes32 intentId, bytes32 secretHash, address recipient, uint64 deadline)
         external payable nonReentrant
     {
+        require(msg.sender == solverAlpha || msg.sender == solverBravo, "NOT_SOLVER");
         require(intentId != bytes32(0) && secretHash != bytes32(0), "ZERO_ID");
         require(recipient != address(0), "ZERO_RECIPIENT");
         require(msg.value > 0, "ZERO_VALUE");

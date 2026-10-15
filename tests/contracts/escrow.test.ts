@@ -30,7 +30,7 @@ describe("HARBOR dual-chain escrow lifecycle", () => {
     const [user, solver, stranger, treasury] = await ethers.getSigners();
     const token = await ethers.deployContract("HarborTestUSD");
     await token.waitForDeployment();
-    const destination = await ethers.deployContract("HarborDestinationEscrow");
+    const destination = await ethers.deployContract("HarborDestinationEscrow",[solver.address,treasury.address]);
     await destination.waitForDeployment();
     const source = await ethers.deployContract("HarborSourceEscrow", [
       await token.getAddress(), await destination.getAddress(), treasury.address, destinationChainId
@@ -93,6 +93,7 @@ describe("HARBOR dual-chain escrow lifecycle", () => {
     await expect(s.destination.connect(s.solver).fundSwap(s.intentId,s.hash,s.user.address,now+100n,{value:fortyTwoPOT}))
       .to.be.revertedWith("TOO_SOON");
     const deadline=now+4n*3600n;
+    await expect(s.destination.connect(s.stranger).fundSwap(s.intentId,s.hash,s.user.address,deadline,{value:fortyTwoPOT})).to.be.revertedWith("NOT_SOLVER");
     await s.destination.connect(s.solver).fundSwap(s.intentId,s.hash,s.user.address,deadline,{value:fortyTwoPOT});
     await expect(s.destination.connect(s.solver).fundSwap(s.intentId,s.hash,s.user.address,deadline,{value:fortyTwoPOT}))
       .to.be.revertedWith("INTENT_USED");

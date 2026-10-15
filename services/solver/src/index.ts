@@ -110,7 +110,7 @@ async function scan(e:Env,chain:"source"|"destination"){
       if(log.eventName==="SourceLocked"){
         await saveSwap(e,{intent_id:log.args.intentId,user_address:log.args.user,
           solver_address:log.args.solver,source_status:"LOCKED",source_deadline:Number(log.args.deadline),
-          source_tx:log.transactionHash});
+          source_tx:log.transactionHash ?? undefined});
         await e.HARBOR_JOBS.send({type:"fund",intentId:log.args.intentId});
       }else if(log.eventName==="SourceClaimed"){
         await saveSwap(e,{intent_id:log.args.intentId,source_status:"CLAIMED"});
@@ -156,7 +156,7 @@ async function fund(e:Env,id:Hex){
   if(!record) return;
   const q=quoteFromJson(record.payload);
   const digest=hashTypedData({domain:quoteDomain(sourceAddress(e)),types:typedQuote,primaryType:"Quote",message:q});
-  const onChain=await src(e).readContract({address:sourceAddress(e),abi:sourceAbi,functionName:"quoteDigest",args:[q]});
+  const onChain=await src(e).readContract({address:sourceAddress(e),abi:sourceAbi,functionName:"quoteDigests",args:[id]});
   if(digest!==onChain || q.secretHash!==hash || q.user.toLowerCase()!==user.toLowerCase()
     || q.sourceAmount!==amount || q.destinationEscrow.toLowerCase()!==destAddress(e).toLowerCase()) throw Error("Quote does not match locked source");
   const account=solver(e,sol);
@@ -268,10 +268,10 @@ export default {
       expiryJobs(e),
     ]));
   },
-  async queue(batch:MessageBatch<Job>,e:Env){
+  async queue(batch:MessageBatch<unknown>,e:Env){
     for(const msg of batch.messages){
-      try{await job(e,msg.body);msg.ack();}
-      catch(err){console.error("Queue retry",msg.body.type,String(err));msg.retry();}
+      try{await job(e,msg.body as Job);msg.ack();}
+      catch(err){console.error("Queue retry",(msg.body as Job)?.type,String(err));msg.retry();}
     }
   },
 } satisfies ExportedHandler<Env>;

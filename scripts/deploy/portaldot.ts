@@ -6,7 +6,10 @@ async function main(){
   if(n.chainId!==420420777n)throw Error("Incorrect Portaldot testnet chain ID");
   const [deployer]=await ethers.getSigners();
   console.log("Portaldot deployer",deployer.address,"balance",String(await ethers.provider.getBalance(deployer.address)));
-  const escrow=await ethers.deployContract("HarborDestinationEscrow");
+  const alpha=process.env.SOLVER_ALPHA_ADDRESS;
+  const bravo=process.env.SOLVER_BRAVO_ADDRESS;
+  if(!alpha||!bravo||!ethers.isAddress(alpha)||!ethers.isAddress(bravo)||alpha.toLowerCase()===bravo.toLowerCase())throw Error("Set distinct SOLVER_ALPHA_ADDRESS and SOLVER_BRAVO_ADDRESS");
+  const escrow=await ethers.deployContract("HarborDestinationEscrow",[alpha,bravo]);
   await escrow.waitForDeployment();
   const tx=escrow.deploymentTransaction();
   if(!tx)throw Error("Missing deployment transaction");
@@ -15,7 +18,7 @@ async function main(){
   const manifest={
     contract:"HarborDestinationEscrow",network:"portaldotV3",
     chainId:Number(n.chainId),address:await escrow.getAddress(),
-    deploymentTx:tx.hash,blockNumber:receipt.blockNumber,
+    deploymentTx:tx.hash,blockNumber:receipt.blockNumber,solverAlpha:alpha,solverBravo:bravo,
   };
   mkdirSync("deployments",{recursive:true});
   writeFileSync("deployments/portaldot-v3.json",JSON.stringify(manifest,null,2)+"\n");

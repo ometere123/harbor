@@ -76,6 +76,7 @@ export const sourceAbi = [
   { name: "refund", type: "function", stateMutability: "nonpayable", inputs: [{ name: "intentId", type: "bytes32" }], outputs: [] },
   { name: "swaps", type: "function", stateMutability: "view", inputs: [{ name: "id", type: "bytes32" }],
     outputs: [{ name: "user", type: "address" }, { name: "solver", type: "address" }, { name: "secretHash", type: "bytes32" }, { name: "amount", type: "uint256" }, { name: "openedAt", type: "uint64" }, { name: "deadline", type: "uint64" }, { name: "status", type: "uint8" }] },
+  { name: "quoteDigests", type: "function", stateMutability: "view", inputs: [{ name: "id", type: "bytes32" }], outputs: [{ type: "bytes32" }] },
   { name: "quoteDigest", type: "function", stateMutability: "view", inputs: [{ name: "q", type: "tuple", components: quoteFields }], outputs: [{ type: "bytes32" }] },
   { name: "SourceLocked", type: "event", inputs: [
     { name: "intentId", type: "bytes32", indexed: true }, { name: "user", type: "address", indexed: true },
