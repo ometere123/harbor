@@ -1,0 +1,24 @@
+{
+  "name": "harbor",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "dev": "pnpm --filter @harbor/web dev",
+    "build": "pnpm --filter @harbor/web build",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm --filter @harbor/protocol test && pnpm hardhat test",
+    "test:contracts": "hardhat test",
+    "compile": "hardhat compile",
+    "lint": "pnpm --filter @harbor/web lint",
+    "test:e2e": "pnpm --filter @harbor/web test:e2e"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@openzeppelin/contracts": "5.2.0",
+    "@types/node": "^22.14.0",
+    "dotenv": "^16.4.7",
+    "hardhat": "^2.22.19",
+    "typescript": "^5.8.3",
+    "vitest": "^2.1.9"
+  }
+}
