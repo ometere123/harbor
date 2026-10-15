@@ -24,7 +24,7 @@ export async function createRecovery(intentId:Hex,secret:Hex,passphrase:string):
 export async function unlockRecovery(record:Recovery,passphrase:string):Promise<Hex>{
   if(record.protocol!=="HARBOR-RECOVERY-1")throw Error("Invalid backup version");
   const key=await derive(passphrase,fromB64(record.salt));
-  const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:fromB64(record.iv)},key,fromB64(record.encrypted));
+  const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:new Uint8Array(fromB64(record.iv))},key,new Uint8Array(fromB64(record.encrypted)));
   const secret=new TextDecoder().decode(plain) as Hex;
   if(secretHashOf(secret)!==record.secretHash)throw Error("Backup checksum mismatch");
   return secret;

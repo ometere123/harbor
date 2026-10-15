@@ -245,6 +245,12 @@ export default {
       ]);
       return json({swap:swaps[0]||null,events});
     }
+    if(u.pathname.startsWith("/v1/activity/")&&req.method==="GET"){
+      const address=u.pathname.slice("/v1/activity/".length);
+      if(!isAddress(address))return json({error:"Bad address"},400);
+      const records=await db<SwapRow[]>(e,"swaps","?user_address=ilike."+encodeURIComponent(address)+"&select=*&order=created_at.desc&limit=100");
+      return json({swaps:records});
+    }
     if(u.pathname==="/v1/solvers"&&req.method==="GET")
       return json({solvers:identities(e).map(s=>({name:s.name,address:s.account.address,rateBps:s.rate.toString()}))});
     if(u.pathname==="/internal/scan"&&req.method==="POST"){

@@ -16,3 +16,5 @@ cache
 .wrangler
 wrangler.toml.local
 deployment-manifest.local.json
+
+.dev.vars

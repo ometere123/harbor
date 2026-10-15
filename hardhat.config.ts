@@ -7,7 +7,7 @@ const destKey = process.env.PORTALDOT_DEPLOYER_KEY;
 const configuration: HardhatUserConfig = {
   solidity: {
     version: "0.8.24",
-    settings: { optimizer: { enabled: true, runs: 200 } },
+    settings: { optimizer: { enabled: true, runs: 200 }, viaIR: true },
   },
   paths: {
     sources: "./contracts",

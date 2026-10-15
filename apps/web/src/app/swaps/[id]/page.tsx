@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { CheckCircle2, Clock, ArrowUpRight, Download, ShieldCheck } from "lucide-react";
 import { formatUnits, type Hex } from "viem";
 import { baseSepolia } from "viem/chains";
+import { portaldot } from "@harbor/protocol";
 import { useWallet } from "@/lib/wallet";
 import { baseClient, destClient, config, ready } from "@/lib/config";
 import { BASE_ID, PORTALDOT_ID, sourceAbi, destinationAbi, quoteFromJson, type JsonQuote } from "@harbor/protocol";
@@ -81,7 +82,7 @@ export default function SwapDetails(){
       setMessage("Confirm the Portaldot destination claim in your wallet");
       const tx=await wallet.send(PORTALDOT_ID,async(client,account)=>
         client.writeContract({address:config.destinationEscrow!,abi:destinationAbi,functionName:"claim",
-          args:[id as Hex,secret],account,chain:undefined as never}));
+          args:[id as Hex,secret],account,chain:portaldot}));
       const receipt=await destClient.waitForTransactionReceipt({hash:tx as Hex});
       if(receipt.status!=="success")throw Error("Destination claim reverted.");
       setMessage("Destination claimed. The secret is now public and the solver can claim source funds.");

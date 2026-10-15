@@ -8,6 +8,7 @@ export interface Env {
   TREASURY_ADDRESS: string;
   SOLVER_ALPHA_PRIVATE_KEY: string; SOLVER_BRAVO_PRIVATE_KEY: string;
   SUPABASE_URL: string; SUPABASE_SERVICE_ROLE_KEY: string;
+  SOURCE_START_BLOCK: string; DEST_START_BLOCK: string;
   WORKER_ADMIN_TOKEN: string;
   HARBOR_JOBS: Queue<Job>;
 }
