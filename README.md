@@ -23,7 +23,7 @@ HARBOR is **not** a trustless light-client bridge or an AMM. Solvers may fail to
 | Assets | 6 decimals | Native Substrate metadata 14 decimals; EVM-RPC raw-value scale **must be measured** |
 | Contract | HarborSourceEscrow | HarborDestinationEscrow |
 | Fee | 0.2% hUSD on successful source claim | No protocol fee |
-| Timeouts | 24 hours after source lock | 3–4 hours after destination funding |
+| Timeouts | 24 hours after source lock | 4 hours after destination funding |
 | Solver funding window | 20 minutes after source lock | 4-hour maximum lock duration |
 | Quote lifetime | 5 minutes | n/a |
 
@@ -96,10 +96,11 @@ There is **no upgrade proxy, custody admin, hidden withdrawal or solver slashing
 ~~~bash
 corepack enable
 corepack prepare pnpm@9.15.9 --activate
-pnpm install --no-frozen-lockfile
+pnpm install --frozen-lockfile
 pnpm compile
 pnpm test
 pnpm typecheck
+pnpm lint
 pnpm build
 pnpm dev
 ~~~
