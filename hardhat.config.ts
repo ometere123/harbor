@@ -1,6 +1,8 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
-import "dotenv/config";
+import { config as loadEnv } from "dotenv";
+loadEnv({path:".env.local"});
+loadEnv({path:".env"});
 
 const sourceKey = process.env.BASE_DEPLOYER_KEY;
 const destKey = process.env.PORTALDOT_DEPLOYER_KEY;

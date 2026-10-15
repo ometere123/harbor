@@ -79,7 +79,7 @@ async function faucet(){
       }
       if(valid.length!==2||valid[0].quote.solver.toLowerCase()===valid[1].quote.solver.toLowerCase())throw Error("Two distinct signed offers required");
       const completed={...record,offers:valid.map(x=>({quote:x.quote,signature:x.signature}))};
-      saveRecovery(completed);setBackup(completed);
+      saveRecovery(completed);setBackup(completed);setDownloaded(false);
       setOffers(valid);setPhase("Choose a solver");
     }catch(e){setError(e instanceof Error?e.message:String(e));setPhase("");}
     finally{setBusy(false);}
@@ -148,7 +148,7 @@ async function faucet(){
       {backup&&<div className="border border-aqua/30 p-5 rounded-xl bg-aqua/5">
         <b className="text-aqua flex gap-2 items-center"><CheckCircle2 size={17}/> Encrypted recovery record created</b>
         <p className="muted text-sm mt-2">Download and safely store this encrypted record before locking any funds. It is useless without your passphrase.</p>
-        <button className="btn btn-outline mt-3" onClick={()=>{downloadRecovery(backup);setDownloaded(true);}}>
+        <button className="btn btn-outline mt-3" disabled={busy} onClick={()=>{downloadRecovery(backup);setDownloaded(true);}}>
           <Download size={17}/> Download encrypted recovery file
         </button>
       </div>}

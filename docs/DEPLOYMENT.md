@@ -5,7 +5,7 @@
 ## 1. Prepare environment
 
 - Node.js 22, pnpm 9.15.9, Git.
-- Copy .env.example to .env.local and export secrets into the terminal environment for Hardhat. Hardhat loads .env with dotenv.
+- Copy .env.example to repository-root .env.local and fill required values. Hardhat loads root .env.local (then .env). Next.js loads root .env.local through apps/web/next.config.ts when run via pnpm dev. Vercel injects its own environment variables and does not need this local file.
 - Fill SOLVER_ALPHA_PRIVATE_KEY and SOLVER_BRAVO_PRIVATE_KEY as dedicated *testnet* keys in Cloudflare secrets. Never reuse an important wallet or put keys in any Next.js NEXT_PUBLIC_* environment variable.
 - Confirm two independent EVM signer addresses and mapped Portaldot native SS58 funding addresses from Developer / Runtime calls / reviveApi / accountId.
 - Fund deployers and solvers from official testnet token distribution. Base Sepolia deployers need test ETH. Solvers need tPOTv3.
