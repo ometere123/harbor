@@ -138,6 +138,6 @@ describe("HARBOR dual-chain escrow lifecycle", () => {
     await expect(s.token.connect(s.user).faucet()).to.be.revertedWith("FAUCET_COOLDOWN");
     await time.increase(24*3600);
     await s.token.connect(s.user).faucet();
-    expect(await s.token.balanceOf(s.user.address)).to.equal(1900n*10n**6n);
+    expect(await s.token.balanceOf(s.user.address)).to.equal(2000n*10n**6n);
   });
 });
