@@ -24,10 +24,24 @@ export default function Swap(){
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState("");
   const [phase,setPhase]=useState("");
+  const [walletBalance,setWalletBalance]=useState<string>("");
   const [selected,setSelected]=useState<number|null>(null);
   const usdRaw=(()=>{try{return parseUnits(amount,6);}catch{return 0n;}})();
   const effectiveRecipient=(destUser||wallet.address||"").trim();
 
+async function faucet(){
+    if(!wallet.address || !config.sourceToken)throw Error("Connect your wallet and configure the source token");
+    setBusy(true);setError("");setPhase("Requesting test hUSD from faucet");
+    try{
+      const tx=await wallet.send(BASE_ID,async(client,account)=>
+        client.writeContract({address:config.sourceToken!,abi:tokenAbi,functionName:"faucet",args:[],account,chain:baseSepolia}));
+      const receipt=await baseClient.waitForTransactionReceipt({hash:tx as Hex});
+      if(receipt.status!=="success")throw Error("Faucet reverted");
+      const balance=await baseClient.readContract({address:config.sourceToken!,abi:tokenAbi,functionName:"balanceOf",args:[wallet.address]});
+      setWalletBalance(formatUnits(balance,6));
+      setPhase("Test hUSD received");
+    }catch(e){setError(String(e));}finally{setBusy(false);}
+  }
   async function getQuotes(){
     if(!wallet.address||!ready())throw Error("Connect a wallet and configure deployed contract addresses.");
     if(!/^0x[a-fA-F0-9]{40}$/.test(effectiveRecipient))throw Error("Enter the Portaldot EVM recipient address.");
@@ -111,6 +125,7 @@ export default function Swap(){
         <div className="stat"><p className="eyebrow">Pay on Base Sepolia</p><h2 className="mt-2 text-xl font-semibold">hUSD</h2><p className="muted text-xs">Test ERC-20 · 6 decimals</p></div>
         <div className="stat"><p className="eyebrow">Receive on Portaldot V3</p><h2 className="mt-2 text-xl font-semibold">tPOTv3</h2><p className="muted text-xs">Native testnet currency · confirmed EVM units required</p></div>
       </div>
+      <div className="stat flex flex-wrap gap-4 items-center justify-between"><div><p className="eyebrow">Demo token faucet</p><p className="muted text-sm mt-2">1,000 hUSD per wallet, once every 24 hours.</p>{walletBalance&&<p className="text-aqua mt-2">Your balance: {walletBalance} hUSD</p>}</div><button className="btn btn-outline" disabled={!wallet.address||busy||!config.sourceToken} onClick={()=>void faucet()}>Mint test hUSD</button></div>
       <div><label className="text-sm block mb-2" htmlFor="amount">You pay (hUSD)</label>
         <input id="amount" className="field text-xl" inputMode="decimal" value={amount} onChange={e=>{setAmount(e.target.value);setOffers([]);}}/>
         <p className="muted text-xs mt-2">0.5 to 100 hUSD per swap. Demo-only exchange rates.</p>

@@ -133,7 +133,7 @@ async function scan(e:Env,chain:"source"|"destination"){
           destination_deadline:Number(log.args.deadline),destination_tx:log.transactionHash});
       }else if(log.eventName==="DestinationClaimed"){
         await saveSwap(e,{intent_id:log.args.intentId,destination_status:"CLAIMED"});
-        await e.HARBOR_JOBS.send({type:"claimSource",intentId:log.args.intentId,secret:log.args.secret});
+        if(log.args.secret) await e.HARBOR_JOBS.send({type:"claimSource",intentId:log.args.intentId,secret:log.args.secret});
       }else{
         await saveSwap(e,{intent_id:log.args.intentId,destination_status:"REFUNDED"});
       }
