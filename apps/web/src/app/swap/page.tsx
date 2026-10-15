@@ -64,6 +64,8 @@ export default function Swap(){
         valid.push(offer);
       }
       if(valid.length!==2||valid[0].quote.solver.toLowerCase()===valid[1].quote.solver.toLowerCase())throw Error("Two distinct signed offers required");
+      const completed={...record,offers:valid.map(x=>({quote:x.quote,signature:x.signature}))};
+      saveRecovery(completed);setBackup(completed);
       setOffers(valid);setPhase("Choose a solver");
     }catch(e){setError(e instanceof Error?e.message:String(e));setPhase("");}
     finally{setBusy(false);}

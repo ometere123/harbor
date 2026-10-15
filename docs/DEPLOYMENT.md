@@ -22,7 +22,7 @@
 
 1. pnpm install --no-frozen-lockfile
 2. pnpm compile && pnpm test
-3. pnpm exec hardhat run scripts/deploy/portaldot.ts --network portaldotV3
+3. Set SOLVER_ALPHA_ADDRESS and SOLVER_BRAVO_ADDRESS derived from the dedicated solver private keys. Run pnpm exec hardhat run scripts/deploy/portaldot.ts --network portaldotV3
 4. Export DESTINATION_ESCROW_ADDRESS from deployments/portaldot-v3.json
 5. Export TREASURY_ADDRESS to a dedicated testnet address
 6. pnpm exec hardhat run scripts/deploy/base.ts --network baseSepolia

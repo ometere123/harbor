@@ -2,12 +2,12 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { CheckCircle2, Clock, ArrowUpRight, Download, ShieldCheck } from "lucide-react";
-import { formatUnits, type Hex } from "viem";
+import { formatUnits, hashTypedData, type Hex } from "viem";
 import { baseSepolia } from "viem/chains";
 import { portaldot } from "@harbor/protocol";
 import { useWallet } from "@/lib/wallet";
 import { baseClient, destClient, config, ready } from "@/lib/config";
-import { BASE_ID, PORTALDOT_ID, sourceAbi, destinationAbi, quoteFromJson, type JsonQuote } from "@harbor/protocol";
+import { BASE_ID, PORTALDOT_ID, sourceAbi, destinationAbi, quoteFromJson, quoteDomain, typedQuote, type JsonQuote } from "@harbor/protocol";
 import { loadRecovery, unlockRecovery, saveRecovery, downloadRecovery, type Recovery } from "@/lib/recovery";
 
 type Stored={quote:JsonQuote;signature:Hex;sourceTx:Hex};
@@ -46,7 +46,15 @@ export default function SwapDetails(){
     try{
       const r=localStorage.getItem("harbor-swap:"+id.toLowerCase());
       if(r)setStored(JSON.parse(r) as Stored);
-      setRecovery(loadRecovery(id));
+      const backup=loadRecovery(id);
+      setRecovery(backup);
+      if(!r&&backup?.offers?.length&&config.sourceEscrow){
+        void (async()=>{
+          const storedDigest=await baseClient.readContract({address:config.sourceEscrow!,abi:sourceAbi,functionName:"quoteDigests",args:[id as Hex]});
+          const match=backup.offers!.find(offer=>hashTypedData({domain:quoteDomain(config.sourceEscrow!),types:typedQuote,primaryType:"Quote",message:quoteFromJson(offer.quote)})===storedDigest);
+          if(match)setStored({quote:match.quote,signature:match.signature,sourceTx:"0x" as Hex});
+        })().catch(()=>{});
+      }
     }catch{setError("Saved swap data could not be read.");}
   },[id]);
   useEffect(()=>{
@@ -59,7 +67,7 @@ export default function SwapDetails(){
     try{
       const imported=JSON.parse(importJson) as Recovery;
       if(imported.protocol!=="HARBOR-RECOVERY-1" || imported.intentId.toLowerCase()!==id.toLowerCase())throw Error("Recovery file does not match this swap");
-      saveRecovery(imported);setRecovery(imported);setError("");setMessage("Encrypted record imported. Enter the recovery passphrase to claim.");
+      saveRecovery(imported);setRecovery(imported);setError("");setMessage("Encrypted record imported. Refresh this page to restore the matching on-chain quote.");
     }catch(e){setError(String(e));}
   }
 
@@ -74,6 +82,9 @@ export default function SwapDetails(){
       snapshot.source[1].toLowerCase()!==q.solver.toLowerCase()||
       snapshot.source[2]!==q.secretHash||snapshot.source[3]!==q.sourceAmount||
       snapshot.source[6]!==1)throw Error("On-chain destination/source escrows do not match the selected signed quote.");
+    const sourceDigest=await baseClient.readContract({address:config.sourceEscrow!,abi:sourceAbi,functionName:"quoteDigests",args:[id as Hex]});
+    const digest=hashTypedData({domain:quoteDomain(config.sourceEscrow!),types:typedQuote,primaryType:"Quote",message:q});
+    if(digest!==sourceDigest)throw Error("The source on-chain quote commitment does not match this recovery record");
     if(wallet.address.toLowerCase()!==q.destinationUser.toLowerCase())throw Error("Connect the destination recipient wallet first.");
     setBusy(true);setError("");
     try{

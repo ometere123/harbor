@@ -1,9 +1,11 @@
 import { randomHex32, secretHashOf } from "@harbor/protocol";
 import type { Hex } from "viem";
+import type { JsonQuote } from "@harbor/protocol";
 
 export type Recovery = {
   protocol:"HARBOR-RECOVERY-1";intentId:Hex;secretHash:Hex;
   iv:string;salt:string;encrypted:string;
+  offers?:{quote:JsonQuote;signature:Hex}[];
 };
 const b64=(bytes:Uint8Array)=>btoa(String.fromCharCode(...bytes));
 const fromB64=(value:string)=>Uint8Array.from(atob(value),c=>c.charCodeAt(0));
