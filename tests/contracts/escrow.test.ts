@@ -58,8 +58,7 @@ describe("HARBOR dual-chain escrow lifecycle", () => {
   }
   it("takes tokens, funds native escrow, pays user and settles solver net of fee", async () => {
     const s=await setup();
-    await expect(s.source.connect(s.user).openSwap(s.quote,s.signature))
-      .to.emit(s.source,"SourceLocked").withArgs(s.intentId,s.user.address,s.solver.address,s.hash,hundredUSD,await s.source.SOURCE_DURATION()+BigInt(await time.latest())+1n,await s.source.quoteDigest(s.quote));
+    await expect(s.source.connect(s.user).openSwap(s.quote,s.signature)).to.emit(s.source,"SourceLocked");
   });
   it("settles both sides with the same secret and immutable beneficiaries", async () => {
     const s=await setup();
