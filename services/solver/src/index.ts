@@ -1,10 +1,10 @@
-import { createPublicClient, createWalletClient, http, isAddress, isHex, hashTypedData } from "viem";
+import { createPublicClient, createWalletClient, http, isAddress, isHex, hashTypedData, verifyMessage } from "viem";
 import type { Address, Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
 import {
   BASE_ID, PORTALDOT_ID, QUOTE_DURATION, FUNDING_WINDOW, DESTINATION_DURATION,
-  quoteDomain, typedQuote, quoteToJson, quoteFromJson, destinationRawAmount,
+  quoteDomain, typedQuote, quoteToJson, quoteFromJson, quoteRequestMessage, destinationRawAmount,
   sourceAbi, destinationAbi, portaldot, secretHashOf, type Quote, type JsonQuote,
 } from "@harbor/protocol";
 import { db, rpc, upsert, iso, type Job } from "./store";
@@ -19,6 +19,7 @@ type SwapRow = {
 };
 type QuoteRequest = {
   intentId: Hex; secretHash: Hex; user: Address; destinationUser: Address; sourceAmount: string;
+  requestTime: number; requestSignature: Hex;
 };
 const isBytes32 = (x: unknown): x is Hex => typeof x === "string" && isHex(x) && /^0x[0-9a-fA-F]{64}$/.test(x) && x !== "0x" + "0".repeat(64);
 const addr = (x: string): Address => { if (!isAddress(x)) throw Error("Invalid address config"); return x as Address; };
@@ -39,7 +40,12 @@ function isQuoteRequest(body: unknown): body is QuoteRequest {
     && typeof value.sourceAmount === "string"
     && /^\d{1,12}$/.test(value.sourceAmount)
     && BigInt(value.sourceAmount) >= 500_000n
-    && BigInt(value.sourceAmount) <= 100_000_000n;
+    && BigInt(value.sourceAmount) <= 100_000_000n
+    && typeof value.requestTime === "number"
+    && Number.isSafeInteger(value.requestTime)
+    && value.requestTime > 0
+    && typeof value.requestSignature === "string"
+    && /^0x[0-9a-fA-F]{130}$/.test(value.requestSignature);
 }
 function identities(e: Env) {
   const a = privateKeyToAccount(e.SOLVER_ALPHA_PRIVATE_KEY as Hex);
@@ -70,6 +76,17 @@ async function saveEvent(e:Env,chain:string,log:{transactionHash:Hex|null;logInd
 async function createQuotes(e: Env, body: unknown): Promise<Response> {
   if (!isQuoteRequest(body))
     return json({error:"Enter 0.5–100 hUSD and valid intent addresses"},400);
+  // Require proof of control of the requesting source account before
+  // spending RPC resources or reserving any solver's quote liquidity.
+  const requestNow=Math.floor(Date.now()/1000);
+  if(Math.abs(requestNow-body.requestTime)>300)
+    return json({error:"Quote request signature expired; retry"},401);
+  const authorised=await verifyMessage({
+    address:body.user,
+    message:quoteRequestMessage(body,sourceAddress(e)),
+    signature:body.requestSignature,
+  });
+  if(!authorised) return json({error:"Quote request wallet signature invalid"},401);
   if(e.PORTALDOT_EVM_VALUE_DECIMALS_VERIFIED!=="true")
     return json({error:"Portaldot EVM value-unit verification pending"},503);
   await chains(e);

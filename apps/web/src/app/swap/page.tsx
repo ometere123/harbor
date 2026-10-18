@@ -6,7 +6,7 @@ import { ArrowRight, CheckCircle2, Download, AlertTriangle } from "lucide-react"
 import { recoverTypedDataAddress, type Address, type Hex, formatUnits, parseUnits } from "viem";
 import { baseSepolia } from "viem/chains";
 import { BASE_ID, PORTALDOT_ID, randomHex32, secretHashOf, typedQuote, quoteDomain, quoteFromJson,
-  validQuote, tokenAbi, sourceAbi, type JsonQuote } from "@harbor/protocol";
+  validQuote, quoteRequestMessage, tokenAbi, sourceAbi, type JsonQuote } from "@harbor/protocol";
 import { useWallet } from "@/lib/wallet";
 import { baseClient, config, ready } from "@/lib/config";
 import { createRecovery, saveRecovery, downloadRecovery, type Recovery } from "@/lib/recovery";
@@ -56,9 +56,17 @@ async function faucet(){
       setBackup(record);
       // Plaintext secret never enters any network request.
       setPhase("Requesting signed solver quotes");
+      const request={
+        intentId,secretHash:secretHashOf(secret),user:wallet.address,
+        destinationUser:effectiveRecipient as Address,sourceAmount:usdRaw.toString(),
+        requestTime:Math.floor(Date.now()/1000),
+      };
+      setPhase("Approve quote request signature in your wallet (no funds move)");
+      const requestSignature=await wallet.send(BASE_ID,async(client,account)=>
+        client.signMessage({account,message:quoteRequestMessage(request,config.sourceEscrow!)}));
+      setPhase("Requesting signed solver quotes");
       const res=await fetch("/api/harbor/v1/quotes",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({intentId,secretHash:secretHashOf(secret),user:wallet.address,
-          destinationUser:effectiveRecipient,sourceAmount:usdRaw.toString()})});
+        body:JSON.stringify({...request,requestSignature})});
       const json=await res.json();
       if(!res.ok)throw Error(json.error||"Solver quotes unavailable");
       const valid:Offer[]=[];

@@ -22,6 +22,31 @@ export const portaldot = defineChain({
 });
 export { parseUnits, formatUnits };
 
+/**
+ * Authenticate quote requests without revealing the user's local hashlock
+ * preimage. EIP-191 account signature binds both networks and this deployment.
+ * This is a wallet authentication message, never a transaction approval.
+ */
+export type UnsignedQuoteRequest = {
+  intentId: Hex; secretHash: Hex; user: Address; destinationUser: Address;
+  sourceAmount: string; requestTime: number;
+};
+export function quoteRequestMessage(r: UnsignedQuoteRequest, sourceEscrow: Address): string {
+  return [
+    "HARBOR — authorise a testnet solver quote request",
+    "This signature does not approve or transfer funds.",
+    "Source chain: " + BASE_ID,
+    "Destination chain: " + PORTALDOT_ID,
+    "Source escrow: " + sourceEscrow.toLowerCase(),
+    "Intent: " + r.intentId.toLowerCase(),
+    "Hashlock: " + r.secretHash.toLowerCase(),
+    "Source user: " + r.user.toLowerCase(),
+    "Destination recipient: " + r.destinationUser.toLowerCase(),
+    "Source amount (hUSD base units): " + r.sourceAmount,
+    "Timestamp: " + r.requestTime,
+  ].join("\n");
+}
+
 export const quoteFields = [
   { name: "intentId", type: "bytes32" },
   { name: "secretHash", type: "bytes32" },
