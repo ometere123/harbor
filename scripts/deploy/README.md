@@ -1,0 +1,1 @@
+HARBOR deploys the Portaldot destination escrow first. The Base Sepolia source deployment script connects independently to both RPCs and checks the Portaldot destination code and authorised solver addresses before deploying on Base. Do not replace this with a same-chain Base provider code check. See docs/DEPLOYMENT.md for actual funding, deployment and receipt verification.\n
