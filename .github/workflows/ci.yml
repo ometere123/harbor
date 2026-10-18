@@ -30,3 +30,13 @@ jobs:
           if git grep -nE '(SUPABASE_SERVICE_ROLE_KEY|SOLVER_ALPHA_PRIVATE_KEY|SOLVER_BRAVO_PRIVATE_KEY)=[^[:space:]]+' -- ':!*.example'; then
             echo "Possible credential assignment committed"; exit 1
           fi
+
+      - name: Package exact source from verified commit
+        run: git archive --format=zip --output harbor-source.zip HEAD
+      - name: Upload complete source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: harbor-source-${{ github.sha }}
+          path: harbor-source.zip
+          if-no-files-found: error
+          retention-days: 30
