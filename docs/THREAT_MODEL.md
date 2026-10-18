@@ -17,3 +17,16 @@ This product is a testnet-only HTLC swap demonstration, not a trustless light-cl
 **Replay/reorg:** Log indexing uses configurable confirmation depths rather than formal chain finality proofs. The worker must be checked against native finalization and reorg tests on the live chain. Duplicate delivery is expected; contracts enforce one settlement per intent.
 
 **Business:** Test hUSD and test tPOTv3 have no guaranteed real-world monetary value. Pricing ratios are demo quotations only. There is no solver slashing, bridge custody or legal representation.
+
+**Liquidity admission (atomic):** Each signed solver offer now acquires a
+Postgres advisory-lock-protected short-lived liquidity reservation on the
+solver identity. It counts *all* outstanding reserved quote+gas obligations,
+not merely one offer's `getBalance`. Reservations last 26 minutes to span
+the five-minute quote lifetime and 20-minute destination-funding window.
+Unpublished failed quote requests release their reservations. A funded lock
+reduces the actual on-chain balance; the retained reservation is conservative
+until expiry. This limits oversubscription by the two hosted solver identities
+but does **not** guarantee fulfilment through RPC outages or insolvency.
+Unauthenticated public requests can still exhaust quote capacity; additional
+request-level rate limiting and origin restrictions must be validated before
+production exposure.

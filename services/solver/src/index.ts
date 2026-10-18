@@ -8,7 +8,7 @@ import {
   sourceAbi, destinationAbi, portaldot, secretHashOf, type Quote, type JsonQuote,
 } from "@harbor/protocol";
 import { db, rpc, upsert, iso, type Job } from "./store";
-import { collectPages, expiredJobs, expiryQuery, hasSufficientFunding, type ExpiryRow } from "./reliability";
+import { collectPages, expiredJobs, expiryQuery, hasSufficientFunding, requiredFunding, type ExpiryRow } from "./reliability";
 
 type SavedQuote = { intent_id: string; solver: string; payload: JsonQuote; signature: Hex; created_at: string };
 type SwapRow = {
@@ -83,6 +83,8 @@ async function createQuotes(e: Env, body: unknown): Promise<Response> {
   const entropy=new Uint8Array(8);crypto.getRandomValues(entropy);
   const nonce=BigInt("0x"+Array.from(entropy).map(x=>x.toString(16).padStart(2,"0")).join(""));
   const entries:SavedQuote[]=[];
+  let reserved = false;
+  try {
   for(const [i,s] of identities(e).entries()){
     const q: Quote={
       intentId:body.intentId,secretHash:body.secretHash,user:body.user,
@@ -98,6 +100,16 @@ async function createQuotes(e: Env, body: unknown): Promise<Response> {
     const balance=await destinationClient.getBalance({address:s.account.address});
     if(!hasSufficientFunding(balance,q.destinationAmount,gasEstimate,gasPrice))
       throw Error(`${s.name} solver liquidity unavailable`);
+    // Atomic Postgres reservation closes the race between multiple quote
+    // requests independently seeing the same wallet balance. Reservations
+    // stay live beyond the quote lifetime through its source funding window.
+    const admitted=await rpc<boolean>(e,"reserve_solver_quote",{
+      p_solver:s.account.address.toLowerCase(),p_intent_id:q.intentId,
+      p_required_value:requiredFunding(q.destinationAmount,gasEstimate,gasPrice).toString(),
+      p_wallet_balance:balance.toString(),
+    });
+    if(!admitted) throw Error(`${s.name} liquidity already committed to other quotes`);
+    reserved = true;
     const signature=await s.account.signTypedData({
       domain:quoteDomain(sourceAddress(e)),types:typedQuote,primaryType:"Quote",message:q,
     });
@@ -105,6 +117,20 @@ async function createQuotes(e: Env, body: unknown): Promise<Response> {
   }
   await upsert(e,"quotes",entries,"intent_id,solver");
   return json({quotes:entries.map((q,i)=>({solverName:identities(e)[i].name,quote:q.payload,signature:q.signature}))});
+  } catch (error) {
+    // The response was never published. Release admission so a failed RPC,
+    // storage write or second-solver check cannot strand users for 26 min.
+    if(reserved) {
+      try {
+        await rpc(e,"release_unpublished_quote_reservations",{p_intent_id:body.intentId});
+      } catch(cleanupError) {
+        logError("quote_reservation_cleanup_failed",{
+          intentId:body.intentId,error:cleanupError instanceof Error?cleanupError.message:String(cleanupError)
+        });
+      }
+    }
+    throw error;
+  }
 }
 async function quotes(e:Env,id:Hex):Promise<SavedQuote[]> {
   return db<SavedQuote[]>(e,"quotes","?intent_id=eq."+id+"&select=*");
