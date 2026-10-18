@@ -4,7 +4,7 @@ import { portaldot } from "../../packages/protocol/src/index";
 
 async function main(){
   const base=createPublicClient({chain:baseSepolia,transport:http(process.env.BASE_RPC_URL||"https://sepolia.base.org")});
-  const dest=createPublicClient({chain:portaldot,transport:http(process.env.PORTALDOT_EVM_RPC_URL||"https://testnetv3-eth-rpc.feso-apps.xyz")});
+  const dest=createPublicClient({chain:portaldot,transport:http(process.env.PORTALDOT_EVM_RPC_URL||"https://test-evm-rpc-v3.portaldot.dev")});
   const [a,b]=await Promise.all([base.getChainId(),dest.getChainId()]);
   if(a!==84532||b!==420420777)throw Error("RPC network mismatch");
   console.log("Source chain",a,"block",(await base.getBlockNumber()).toString());

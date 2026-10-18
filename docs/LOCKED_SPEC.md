@@ -14,8 +14,8 @@ HARBOR is a **testnet-only, non-custodial, solver-quoted, hashlocked cross-chain
 | Source asset | **hUSD** (Harbor Test USD), faucet-enabled **6-decimal ERC-20**, no real USD backing |
 | Destination | **Portaldot V3 testnet**, EVM chain ID **420420777** |
 | Destination asset | **native tPOTv3**; native substrate metadata **14 decimals** |
-| Portaldot native WSS (published) | `wss://testnetv3-node.feso-apps.xyz` |
-| Portaldot EVM RPC (published) | `https://testnetv3-eth-rpc.feso-apps.xyz` |
+| Portaldot native WSS (published) | `wss://test-node-v3.portaldot.dev` |
+| Portaldot EVM RPC (published) | `https://test-evm-rpc-v3.portaldot.dev` |
 | Base RPC | `https://sepolia.base.org` |
 | Direction | **Base Sepolia hUSD → Portaldot native tPOTv3**, one full fill per intent |
 | Quote lifetime | **5 minutes** |

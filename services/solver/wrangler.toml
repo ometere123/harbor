@@ -20,7 +20,7 @@ crons = ["*/5 * * * *"]
 
 [vars]
 BASE_RPC_URL = "https://sepolia.base.org"
-PORTALDOT_EVM_RPC_URL = "https://testnetv3-eth-rpc.feso-apps.xyz"
+PORTALDOT_EVM_RPC_URL = "https://test-evm-rpc-v3.portaldot.dev"
 BASE_CHAIN_ID = "84532"
 PORTALDOT_CHAIN_ID = "420420777"
 # MUST BE SET AFTER TESTNET LIVE VALIDATION

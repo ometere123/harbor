@@ -23,7 +23,7 @@ The system demonstrates practical cross-chain infrastructure without a custody a
   6-decimal hUSD       native tPOTv3
           ^                         ^
           | source claim             | destination claim
-          +--------- SHA-256 secret -+
+          +--------- Keccak-256 secret -+
 
  Supabase Postgres = coordination/index only; it cannot move escrow funds.
 ~~~
