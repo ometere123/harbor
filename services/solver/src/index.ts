@@ -65,7 +65,16 @@ async function chains(e: Env) {
     throw Error("Chain identity mismatch");
 }
 async function saveSwap(e: Env, data: Partial<SwapRow> & {intent_id:string}) {
-  await upsert(e,"swaps",[data],"intent_id");
+  // Source and destination events are observed by separate queue jobs.
+  // A generic partial upsert can overwrite unrelated fields with defaults.
+  // A database-side atomic merge preserves each chain's independent state.
+  const args: Record<string, unknown> = { p_intent_id: data.intent_id };
+  for (const [key, value] of Object.entries(data)) {
+    if (key !== "intent_id" && value !== undefined && value !== null) {
+      args["p_" + key] = value;
+    }
+  }
+  await rpc(e, "record_swap_observation", args);
 }
 async function saveEvent(e:Env,chain:string,log:{transactionHash:Hex|null;logIndex:number;blockNumber:bigint|null},event:string,id:Hex) {
   if (!log.transactionHash || log.blockNumber===null) return;

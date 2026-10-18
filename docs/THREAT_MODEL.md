@@ -30,3 +30,10 @@ but does **not** guarantee fulfilment through RPC outages or insolvency.
 Unauthenticated public requests can still exhaust quote capacity; additional
 request-level rate limiting and origin restrictions must be validated before
 production exposure.
+
+**Cross-chain index consistency:** Source and destination observations enter
+separate Cloudflare Queue jobs. Each writes through the service-role-only
+`record_swap_observation` Postgres function, which merges independently
+observed source/destination statuses atomically. A late LOCKED event cannot
+overwrite an already-recorded CLAIMED or REFUNDED status. The UI still reads
+chain contracts directly before any financial action.

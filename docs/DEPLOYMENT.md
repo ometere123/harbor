@@ -9,7 +9,7 @@
 - Fill SOLVER_ALPHA_PRIVATE_KEY and SOLVER_BRAVO_PRIVATE_KEY as dedicated *testnet* keys in Cloudflare secrets. Never reuse an important wallet or put keys in any Next.js NEXT_PUBLIC_* environment variable.
 - Confirm two independent EVM signer addresses and mapped Portaldot native SS58 funding addresses from Developer / Runtime calls / reviveApi / accountId.
 - Fund deployers and solvers from official testnet token distribution. Base Sepolia deployers need test ETH. Solvers need tPOTv3.
-- Create a Supabase project and apply every migration in order (`001_harbor.sql`, then `002_worker_reliability.sql`). Tables are service-role only by design; the browser never receives the service-role key.
+- Create a Supabase project and apply every migration in order (`001_harbor.sql`, `002_worker_reliability.sql`, `003_solver_liquidity_reservations.sql`, then `004_merge_swap_observations.sql`). Tables are service-role only by design; the browser never receives the service-role key.
 
 ## 2. Verification before writes
 
@@ -34,7 +34,7 @@ Do not consider a deployment accepted just because a transaction hash was return
 
 ## 4. Cloudflare Workers
 
-1. Apply both Supabase migrations in order. Migration 002 adds partial expiry indexes and a monotonic checkpoint RPC; do not replace it with a direct checkpoint upsert.
+1. Apply both Supabase migrations in order. Migration 002 adds expiry indexes and a monotonic checkpoint RPC. Migration 003 atomically reserves solver quote liquidity. Migration 004 merges asynchronous cross-chain observations without overwriting unrelated status fields. Apply ALL FOUR migrations in order.
 2. Run pnpm --filter @harbor/solver exec wrangler queues create harbor-jobs
 3. Run pnpm --filter @harbor/solver exec wrangler queues create harbor-dead-letter
 4. Populate secrets using `wrangler secret put` for SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SOURCE_TOKEN_ADDRESS, SOURCE_ESCROW_ADDRESS, DESTINATION_ESCROW_ADDRESS, SOLVER_ALPHA_PRIVATE_KEY, SOLVER_BRAVO_PRIVATE_KEY, WORKER_ADMIN_TOKEN, SOURCE_START_BLOCK and DEST_START_BLOCK. Provide accurate deployment block numbers; scanning from genesis can consume large free allowances.
