@@ -8,8 +8,26 @@ async function main(){
   const treasury=process.env.TREASURY_ADDRESS;
   if(!target||!ethers.isAddress(target)||!treasury||!ethers.isAddress(treasury))
     throw Error("Set DESTINATION_ESCROW_ADDRESS and TREASURY_ADDRESS");
-  const destinationCode=await ethers.provider.getCode(target);
-  if(destinationCode==="0x")throw Error("Destination escrow has no deployed code on Portaldot");
+  // Verify the cross-chain destination using the Portaldot RPC, never
+  // the Base Sepolia provider that deploys this source escrow.
+  const rpc=process.env.PORTALDOT_EVM_RPC_URL;
+  if(!rpc)throw Error("Set PORTALDOT_EVM_RPC_URL");
+  const dstProvider=new ethers.JsonRpcProvider(rpc);
+  const dstNetwork=await dstProvider.getNetwork();
+  if(dstNetwork.chainId!==420420777n)throw Error("Wrong Portaldot V3 RPC chain ID");
+  const destinationCode=await dstProvider.getCode(target);
+  if(destinationCode==="0x")throw Error("Portaldot destination escrow has no deployed code");
+  const destination=new ethers.Contract(target,[
+    "function solverAlpha() view returns(address)",
+    "function solverBravo() view returns(address)",
+  ],dstProvider);
+  const alpha=String(await destination.solverAlpha());
+  const bravo=String(await destination.solverBravo());
+  if(alpha.toLowerCase()===bravo.toLowerCase())throw Error("Destination solver addresses match");
+  if(process.env.SOLVER_ALPHA_ADDRESS&&alpha.toLowerCase()!==process.env.SOLVER_ALPHA_ADDRESS.toLowerCase())
+    throw Error("Destination solver Alpha mismatch");
+  if(process.env.SOLVER_BRAVO_ADDRESS&&bravo.toLowerCase()!==process.env.SOLVER_BRAVO_ADDRESS.toLowerCase())
+    throw Error("Destination solver Bravo mismatch");
   const hUSD=await ethers.deployContract("HarborTestUSD");
   await hUSD.waitForDeployment();
   const source=await ethers.deployContract("HarborSourceEscrow",[await hUSD.getAddress(),target,treasury,420420777n]);
