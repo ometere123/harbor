@@ -27,7 +27,7 @@ const configuration: HardhatUserConfig = {
       accounts: sourceKey ? [sourceKey] : [],
     },
     portaldotV3: {
-      url: process.env.PORTALDOT_EVM_RPC_URL || "https://testnetv3-eth-rpc.feso-apps.xyz",
+      url: process.env.PORTALDOT_EVM_RPC_URL || "https://test-evm-rpc-v3.portaldot.dev",
       chainId: 420420777,
       accounts: destKey ? [destKey] : [],
     },

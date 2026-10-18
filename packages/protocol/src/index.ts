@@ -4,7 +4,7 @@ import type { Address, Hex } from "viem";
 export const BASE_ID = 84532;
 export const PORTALDOT_ID = 420420777;
 export const DEFAULT_BASE_RPC = "https://sepolia.base.org";
-export const DEFAULT_PORTALDOT_RPC = "https://testnetv3-eth-rpc.feso-apps.xyz";
+export const DEFAULT_PORTALDOT_RPC = "https://test-evm-rpc-v3.portaldot.dev";
 export const SOURCE_DURATION = 24n * 60n * 60n;
 export const DESTINATION_DURATION = 4n * 60n * 60n;
 export const MIN_DESTINATION_DURATION = 3n * 60n * 60n;
