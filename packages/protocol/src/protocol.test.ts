@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { destinationRawAmount, randomHex32, secretHashOf, validQuote, BASE_ID, PORTALDOT_ID } from "./index";
+import { verifyMessage } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { destinationRawAmount, randomHex32, secretHashOf, validQuote, quoteRequestMessage, BASE_ID, PORTALDOT_ID } from "./index";
 import type { Quote } from "./index";
 
 describe("cross-chain protocol quantities", () => {
@@ -35,5 +37,31 @@ describe("cross-chain protocol quantities", () => {
     expect(validQuote(q,now)).toBe(true);
     expect(validQuote({...q,destinationSolver:q.destinationUser},now)).toBe(false);
     expect(validQuote({...q,expiresAt:now+301n},now)).toBe(false);
+  });
+});
+
+describe("RFQ source-account authentication", () => {
+  it("binds EIP-191 signature to intent, hashlock, both chains and escrow", async () => {
+    const wallet=privateKeyToAccount(("0x" + "11".repeat(32)) as `0x${string}`);
+    const addr="0x0000000000000000000000000000000000000005" as const;
+    const recipient="0x0000000000000000000000000000000000000006" as const;
+    const req={
+      intentId:randomHex32(),secretHash:randomHex32(),
+      user:wallet.address,destinationUser:recipient,
+      sourceAmount:"10000000",requestTime:1_000_000,
+    };
+    const signed=quoteRequestMessage(req,addr);
+    const signature=await wallet.signMessage({message:signed});
+    expect(await verifyMessage({address:wallet.address,message:signed,signature})).toBe(true);
+    expect(await verifyMessage({
+      address:wallet.address,
+      message:quoteRequestMessage({...req,sourceAmount:"10000001"},addr),
+      signature,
+    })).toBe(false);
+    expect(await verifyMessage({
+      address:wallet.address,
+      message:quoteRequestMessage(req,"0x0000000000000000000000000000000000000007"),
+      signature,
+    })).toBe(false);
   });
 });

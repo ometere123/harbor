@@ -9,7 +9,7 @@
 
 ## Problem and product
 
-Cross-chain swaps often route funds through a custodial bridge or depend on an unverified relayer's promise. HARBOR instead uses **two separate hashed-timelock escrow contracts**: a token escrow on Base Sepolia and a payable native-value escrow on Portaldot V3. Two dedicated solver identities compete with individually signed, time-limited EIP-712 quotes. The chosen solver funds the Portaldot destination after the source lock is confirmed; the user reveals a private secret only by claiming the Portaldot funds; the public secret lets the solver claim its source hUSD payment.
+Cross-chain swaps often route funds through a custodial bridge or depend on an unverified relayer's promise. HARBOR instead uses **two separate hashed-timelock escrow contracts**: a token escrow on Base Sepolia and a payable native-value escrow on Portaldot V3. Two dedicated solver identities compete with individually signed, time-limited EIP-712 quotes. The requesting wallet first signs a non-transaction EIP-191 request message to authenticate the RFQ. The chosen solver funds the Portaldot destination after the source lock is confirmed; the user reveals a private secret only by claiming the Portaldot funds; the public secret lets the solver claim its source hUSD payment.
 
 HARBOR is **not** a trustless light-client bridge or an AMM. Solvers may fail to fill a quote; refunds become available after the specified deadlines. A transaction is not cross-chain atomic in the conventional single-transaction sense. A severe network outage can still impact liveness.
 

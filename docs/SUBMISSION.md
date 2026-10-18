@@ -38,7 +38,7 @@ Solvers publish competing quotes with a source hUSD amount and destination tPOTv
 
 ## User instructions
 
-1. Connect an injected EVM wallet and select Base Sepolia.
+1. Connect an injected EVM wallet and select Base Sepolia. The quote-request flow requires an EIP-191 wallet signature that authorises an RFQ but does not move funds.
 2. Mint faucet hUSD, enter an amount and generate the encrypted recovery download.
 3. Compare Alpha and Bravo quotes, select one, approve hUSD and lock the source escrow.
 4. Wait for the selected solver to fund the destination. Verify recipient, solver, amount, hashlock and source quote commitment on-chain.
@@ -90,7 +90,7 @@ Fund deployers with Base Sepolia ETH and solvers with Portaldot V3 tPOTv3 from t
 5. Security: typed quotes, hashlocks, expiries, replay resistance and permissionless recovery.
 6. Solver economics and reliability: two identities, funding checks, queues, retries and checkpoints.
 7. Live proof: contract addresses, receipts, state reads and balance deltas.
-8. Ecosystem contribution, limitations and next safe extension.
+8. Ecosystem contribution, present-day business case and verified limitations.
 
 ## Current limitation
 
